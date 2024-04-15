@@ -1,0 +1,6 @@
+datasource.host=localhost
+datasource.port=5432
+datasource.database=recipe_db
+datasource.username=postgres
+datasource.password=password
+server.port=8085
