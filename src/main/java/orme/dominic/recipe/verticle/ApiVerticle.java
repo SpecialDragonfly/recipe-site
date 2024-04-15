@@ -5,24 +5,36 @@ import io.vertx.core.Promise;
 import io.vertx.ext.web.Router;
 import io.vertx.pgclient.PgPool;
 import orme.dominic.recipe.ConfigUtils;
-import orme.dominic.recipe.handler.BookHandler;
-import orme.dominic.recipe.repository.BookRepository;
-import orme.dominic.recipe.router.BookRouter;
-import orme.dominic.recipe.services.BookService;
+import orme.dominic.recipe.handler.IngredientHandler;
+import orme.dominic.recipe.handler.RecipeHandler;
+import orme.dominic.recipe.repository.IngredientRepository;
+import orme.dominic.recipe.repository.RecipeRepository;
+import orme.dominic.recipe.router.IngredientRouter;
+import orme.dominic.recipe.router.RecipeRouter;
+import orme.dominic.recipe.services.IngredientService;
+import orme.dominic.recipe.services.RecipeService;
 
 public class ApiVerticle extends AbstractVerticle {
     @Override
     public void start(Promise<Void> promise) throws Exception {
         PgPool dbClient = ConfigUtils.getInstance().buildDbClient(vertx);
 
-        BookRepository bookRepository = new BookRepository();
+        IngredientRepository ingredientRepository = new IngredientRepository();
+        IngredientService ingredientService = new IngredientService(dbClient, ingredientRepository);
 
-        BookService bookService = new BookService(dbClient, bookRepository);
-        BookHandler bookHandler = new BookHandler(bookService);
-        BookRouter bookRouter = new BookRouter(vertx, bookHandler);
+        RecipeRepository recipeRepository = new RecipeRepository();
+        RecipeService recipeService = new RecipeService(dbClient, recipeRepository);
+
+        RecipeHandler recipeHandler = new RecipeHandler(recipeService, ingredientService);
+        RecipeRouter recipeRouter = new RecipeRouter(vertx, recipeHandler);
+
+
+        IngredientHandler ingredientHandler = new IngredientHandler(ingredientService);
+        IngredientRouter ingredientRouter = new IngredientRouter(vertx, ingredientHandler);
 
         Router router = Router.router(vertx);
-        bookRouter.setRouter(router); // <-- bad name. Actually sets up the routes.
+        recipeRouter.setRouter(router);
+        ingredientRouter.setRouter(router);
 
         int port = ConfigUtils.getInstance().getServerPort();
 

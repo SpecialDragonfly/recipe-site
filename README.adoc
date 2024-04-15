@@ -1,8 +1,8 @@
-= Starter
+= Recipe Index
 
 image:https://img.shields.io/badge/vert.x-4.5.7-purple.svg[link="https://vertx.io"]
 
-This application was generated using http://start.vertx.io
+Fill in the details of where to find the recipe and what ingredients it uses, to then be able to search later.
 
 == Building
 
