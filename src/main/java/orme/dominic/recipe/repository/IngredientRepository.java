@@ -18,6 +18,7 @@ public class IngredientRepository {
     private static final String SQL_ADD_TO_PIVOT_TABLE = "INSERT INTO recipe_ingredients (recipe_id, ingredient_id) VALUES (#{recipe_id}, #{ingredient_id})";
     private static final String SQL_GET_ONE = "SELECT id FROM ingredients WHERE name = #{name}";
     private static final String SQL_RECIPE_INGREDIENT_EXISTS = "SELECT COUNT(*) AS count FROM recipe_ingredients WHERE recipe_id = #{recipe_id} AND ingredient_id = #{ingredient_id}";
+    private static final String SQL_DELETE_PIVOT_DATA = "DELETE FROM recipe_ingredients WHERE ingredient_id = #{ingredient_id}";
 
     public Future<Integer> count(SqlConnection connection) {
         final RowMapper<Integer> ROW_MAPPER = row -> row.getInteger("total");
@@ -57,10 +58,12 @@ public class IngredientRepository {
         return SqlTemplate
             .forUpdate(connection, SQL_INSERT)
             .mapFrom(Ingredient.class)
+            .mapTo(Ingredient.class)
             .execute(ingredient)
-            .flatMap(rowSet -> {
+            .map(rowSet -> {
+                final RowIterator<Ingredient> iterator = rowSet.iterator();
                 if (rowSet.rowCount() > 0) {
-                    return Future.succeededFuture(ingredient);
+                    return ingredient.withId(iterator.next().getId());
                 } else {
                     throw new NoSuchElementException("Id: " + ingredient.getId());
                     //throw new NoSuchElementException(LogUtils.NO_BOOK_WITH_ID_MESSAGE.buildMessage(book.getId()));
@@ -92,7 +95,7 @@ public class IngredientRepository {
     }
 
     public Future<Void> delete(SqlConnection connection, int id) {
-        return SqlTemplate
+        SqlTemplate
             .forUpdate(connection, SQL_DELETE)
             .execute(Collections.singletonMap("id", id))
             .flatMap(rowSet -> {
@@ -104,7 +107,12 @@ public class IngredientRepository {
                     throw new NoSuchElementException("Id: " + id);
                     //throw new NoSuchElementException(LogUtils.NO_BOOK_WITH_ID_MESSAGE.buildMessage(id));
                 }
-            });
+            }).onSuccess(s -> SqlTemplate
+                .forUpdate(connection, SQL_DELETE_PIVOT_DATA)
+                .execute(Collections.singletonMap("ingredient_id", id))
+                .onSuccess(s2 -> System.out.println(s2))
+                .onFailure(e -> System.out.println(e.getMessage())));
+        return null;
     }
 
     private Future<Integer> getOrCreateIngredientId(SqlConnection connection, String ingredientName) {
